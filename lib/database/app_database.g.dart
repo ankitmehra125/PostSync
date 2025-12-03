@@ -45,8 +45,39 @@ class $PostEntityTable extends PostEntity
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _timerRemainingMeta = const VerificationMeta(
+    'timerRemaining',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, userId, title, body];
+  late final GeneratedColumn<int> timerRemaining = GeneratedColumn<int>(
+    'timer_remaining',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isReadMeta = const VerificationMeta('isRead');
+  @override
+  late final GeneratedColumn<bool> isRead = GeneratedColumn<bool>(
+    'is_read',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_read" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    title,
+    body,
+    timerRemaining,
+    isRead,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -86,6 +117,21 @@ class $PostEntityTable extends PostEntity
     } else if (isInserting) {
       context.missing(_bodyMeta);
     }
+    if (data.containsKey('timer_remaining')) {
+      context.handle(
+        _timerRemainingMeta,
+        timerRemaining.isAcceptableOrUnknown(
+          data['timer_remaining']!,
+          _timerRemainingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_read')) {
+      context.handle(
+        _isReadMeta,
+        isRead.isAcceptableOrUnknown(data['is_read']!, _isReadMeta),
+      );
+    }
     return context;
   }
 
@@ -111,6 +157,14 @@ class $PostEntityTable extends PostEntity
         DriftSqlType.string,
         data['${effectivePrefix}body'],
       )!,
+      timerRemaining: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timer_remaining'],
+      ),
+      isRead: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_read'],
+      )!,
     );
   }
 
@@ -125,11 +179,15 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
   final int userId;
   final String title;
   final String body;
+  final int? timerRemaining;
+  final bool isRead;
   const PostEntityData({
     required this.id,
     required this.userId,
     required this.title,
     required this.body,
+    this.timerRemaining,
+    required this.isRead,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -138,6 +196,10 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
     map['user_id'] = Variable<int>(userId);
     map['title'] = Variable<String>(title);
     map['body'] = Variable<String>(body);
+    if (!nullToAbsent || timerRemaining != null) {
+      map['timer_remaining'] = Variable<int>(timerRemaining);
+    }
+    map['is_read'] = Variable<bool>(isRead);
     return map;
   }
 
@@ -147,6 +209,10 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
       userId: Value(userId),
       title: Value(title),
       body: Value(body),
+      timerRemaining: timerRemaining == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timerRemaining),
+      isRead: Value(isRead),
     );
   }
 
@@ -160,6 +226,8 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
       userId: serializer.fromJson<int>(json['userId']),
       title: serializer.fromJson<String>(json['title']),
       body: serializer.fromJson<String>(json['body']),
+      timerRemaining: serializer.fromJson<int?>(json['timerRemaining']),
+      isRead: serializer.fromJson<bool>(json['isRead']),
     );
   }
   @override
@@ -170,6 +238,8 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
       'userId': serializer.toJson<int>(userId),
       'title': serializer.toJson<String>(title),
       'body': serializer.toJson<String>(body),
+      'timerRemaining': serializer.toJson<int?>(timerRemaining),
+      'isRead': serializer.toJson<bool>(isRead),
     };
   }
 
@@ -178,11 +248,17 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
     int? userId,
     String? title,
     String? body,
+    Value<int?> timerRemaining = const Value.absent(),
+    bool? isRead,
   }) => PostEntityData(
     id: id ?? this.id,
     userId: userId ?? this.userId,
     title: title ?? this.title,
     body: body ?? this.body,
+    timerRemaining: timerRemaining.present
+        ? timerRemaining.value
+        : this.timerRemaining,
+    isRead: isRead ?? this.isRead,
   );
   PostEntityData copyWithCompanion(PostEntityCompanion data) {
     return PostEntityData(
@@ -190,6 +266,10 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
       userId: data.userId.present ? data.userId.value : this.userId,
       title: data.title.present ? data.title.value : this.title,
       body: data.body.present ? data.body.value : this.body,
+      timerRemaining: data.timerRemaining.present
+          ? data.timerRemaining.value
+          : this.timerRemaining,
+      isRead: data.isRead.present ? data.isRead.value : this.isRead,
     );
   }
 
@@ -199,13 +279,16 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
           ..write('id: $id, ')
           ..write('userId: $userId, ')
           ..write('title: $title, ')
-          ..write('body: $body')
+          ..write('body: $body, ')
+          ..write('timerRemaining: $timerRemaining, ')
+          ..write('isRead: $isRead')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, userId, title, body);
+  int get hashCode =>
+      Object.hash(id, userId, title, body, timerRemaining, isRead);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -213,7 +296,9 @@ class PostEntityData extends DataClass implements Insertable<PostEntityData> {
           other.id == this.id &&
           other.userId == this.userId &&
           other.title == this.title &&
-          other.body == this.body);
+          other.body == this.body &&
+          other.timerRemaining == this.timerRemaining &&
+          other.isRead == this.isRead);
 }
 
 class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
@@ -221,17 +306,23 @@ class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
   final Value<int> userId;
   final Value<String> title;
   final Value<String> body;
+  final Value<int?> timerRemaining;
+  final Value<bool> isRead;
   const PostEntityCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
     this.title = const Value.absent(),
     this.body = const Value.absent(),
+    this.timerRemaining = const Value.absent(),
+    this.isRead = const Value.absent(),
   });
   PostEntityCompanion.insert({
     this.id = const Value.absent(),
     required int userId,
     required String title,
     required String body,
+    this.timerRemaining = const Value.absent(),
+    this.isRead = const Value.absent(),
   }) : userId = Value(userId),
        title = Value(title),
        body = Value(body);
@@ -240,12 +331,16 @@ class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
     Expression<int>? userId,
     Expression<String>? title,
     Expression<String>? body,
+    Expression<int>? timerRemaining,
+    Expression<bool>? isRead,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (userId != null) 'user_id': userId,
       if (title != null) 'title': title,
       if (body != null) 'body': body,
+      if (timerRemaining != null) 'timer_remaining': timerRemaining,
+      if (isRead != null) 'is_read': isRead,
     });
   }
 
@@ -254,12 +349,16 @@ class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
     Value<int>? userId,
     Value<String>? title,
     Value<String>? body,
+    Value<int?>? timerRemaining,
+    Value<bool>? isRead,
   }) {
     return PostEntityCompanion(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       title: title ?? this.title,
       body: body ?? this.body,
+      timerRemaining: timerRemaining ?? this.timerRemaining,
+      isRead: isRead ?? this.isRead,
     );
   }
 
@@ -278,6 +377,12 @@ class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
     if (body.present) {
       map['body'] = Variable<String>(body.value);
     }
+    if (timerRemaining.present) {
+      map['timer_remaining'] = Variable<int>(timerRemaining.value);
+    }
+    if (isRead.present) {
+      map['is_read'] = Variable<bool>(isRead.value);
+    }
     return map;
   }
 
@@ -287,7 +392,9 @@ class PostEntityCompanion extends UpdateCompanion<PostEntityData> {
           ..write('id: $id, ')
           ..write('userId: $userId, ')
           ..write('title: $title, ')
-          ..write('body: $body')
+          ..write('body: $body, ')
+          ..write('timerRemaining: $timerRemaining, ')
+          ..write('isRead: $isRead')
           ..write(')'))
         .toString();
   }
@@ -310,6 +417,8 @@ typedef $$PostEntityTableCreateCompanionBuilder =
       required int userId,
       required String title,
       required String body,
+      Value<int?> timerRemaining,
+      Value<bool> isRead,
     });
 typedef $$PostEntityTableUpdateCompanionBuilder =
     PostEntityCompanion Function({
@@ -317,6 +426,8 @@ typedef $$PostEntityTableUpdateCompanionBuilder =
       Value<int> userId,
       Value<String> title,
       Value<String> body,
+      Value<int?> timerRemaining,
+      Value<bool> isRead,
     });
 
 class $$PostEntityTableFilterComposer
@@ -345,6 +456,16 @@ class $$PostEntityTableFilterComposer
 
   ColumnFilters<String> get body => $composableBuilder(
     column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timerRemaining => $composableBuilder(
+    column: $table.timerRemaining,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isRead => $composableBuilder(
+    column: $table.isRead,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -377,6 +498,16 @@ class $$PostEntityTableOrderingComposer
     column: $table.body,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get timerRemaining => $composableBuilder(
+    column: $table.timerRemaining,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isRead => $composableBuilder(
+    column: $table.isRead,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PostEntityTableAnnotationComposer
@@ -399,6 +530,14 @@ class $$PostEntityTableAnnotationComposer
 
   GeneratedColumn<String> get body =>
       $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<int> get timerRemaining => $composableBuilder(
+    column: $table.timerRemaining,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isRead =>
+      $composableBuilder(column: $table.isRead, builder: (column) => column);
 }
 
 class $$PostEntityTableTableManager
@@ -436,11 +575,15 @@ class $$PostEntityTableTableManager
                 Value<int> userId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> body = const Value.absent(),
+                Value<int?> timerRemaining = const Value.absent(),
+                Value<bool> isRead = const Value.absent(),
               }) => PostEntityCompanion(
                 id: id,
                 userId: userId,
                 title: title,
                 body: body,
+                timerRemaining: timerRemaining,
+                isRead: isRead,
               ),
           createCompanionCallback:
               ({
@@ -448,11 +591,15 @@ class $$PostEntityTableTableManager
                 required int userId,
                 required String title,
                 required String body,
+                Value<int?> timerRemaining = const Value.absent(),
+                Value<bool> isRead = const Value.absent(),
               }) => PostEntityCompanion.insert(
                 id: id,
                 userId: userId,
                 title: title,
                 body: body,
+                timerRemaining: timerRemaining,
+                isRead: isRead,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -12,7 +12,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from == 1) {
+        await m.addColumn(postEntity, postEntity.isRead);
+      }
+    },
+  );
 
   /// Fetch all posts
   Future<List<PostEntityData>> getAllPosts() => select(postEntity).get();
@@ -28,6 +37,19 @@ class AppDatabase extends _$AppDatabase {
   Future<PostEntityData?> getPostById(int id) {
     return (select(postEntity)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
   }
+
+  /// Mark post as read
+  Future<void> markPostAsRead(int id) async {
+    await (update(postEntity)..where((tbl) => tbl.id.equals(id)))
+        .write(PostEntityCompanion(isRead: Value(true)));
+  }
+
+  /// Check if post is read
+  Future<bool> isPostRead(int id) async {
+    final result = await (select(postEntity)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return result?.isRead ?? false;
+  }
+
 }
 
 /// Open connection for Drift database
