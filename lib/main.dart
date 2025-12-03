@@ -5,8 +5,8 @@ import 'package:post_sync/lang/languages.dart';
 import 'package:post_sync/routes/app_pages.dart';
 import 'package:post_sync/routes/app_routes.dart';
 
-void main()
-{
+/// The main function is the entry point of the Flutter application.
+void main() {
   runApp(const MyApp());
 }
 

@@ -1,3 +1,4 @@
+/// The PostModel class represents a post with userId, id, title, and body fields.
 class PostModel {
   int? userId;
   int? id;

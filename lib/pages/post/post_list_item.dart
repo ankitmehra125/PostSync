@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -7,6 +6,7 @@ import 'package:post_sync/common/common_ui.dart';
 import 'package:post_sync/common/app_colors.dart';
 import 'package:post_sync/global.dart';
 
+/// A widget that represents a single post item in a list, with visibility detection and timer functionality.
 class PostListItem extends StatefulWidget {
   final dynamic item;
   final PostController controller;

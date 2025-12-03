@@ -7,6 +7,7 @@ import 'package:post_sync/api/api_provider.dart';
 import 'package:post_sync/database/app_database.dart';
 import 'package:post_sync/routes/app_routes.dart';
 
+/// The PostController class is responsible for managing the state of the post list,
 class PostController extends GetxController {
   var posts = <dynamic>[].obs;
   var isLoading = false.obs;

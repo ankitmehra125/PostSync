@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
+/// A class that provides methods to interact with a Restful API.
 class ApiProvider {
   final String baseUrl = "https://jsonplaceholder.typicode.com";
 
