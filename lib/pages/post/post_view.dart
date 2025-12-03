@@ -6,7 +6,7 @@ import 'package:post_sync/lang/strings.dart';
 import 'package:post_sync/pages/post/post_controller.dart';
 import 'package:post_sync/pages/post/post_list_item.dart';
 
-/// The PostView displays a list of posts fetched from the local database.
+/// The PostView displays a list of posts fetched from the local database...
 class PostView extends StatelessWidget {
   PostView({super.key});
 
